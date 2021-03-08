@@ -7,16 +7,15 @@
 # the Business Source License, use of this software will be governed
 # by the Apache License, Version 2.0.
 
-collector_name: tpcch
-metrics:
-  - metric_name: debezium_tpcch_table_rows
-    query: |
-      SELECT table_rows, table_name
-      FROM information_schema.tables
-      WHERE table_schema = 'tpcch';
-    help: number of rows in each table
-    type: gauge
-    values:
-      - table_rows
-    key_labels:
-      - table_name
+FROM golang:1.13.1-buster
+
+RUN apt-get update && apt-get -qy install curl
+
+RUN curl -fsSL https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh > /usr/local/bin/wait-for-it \
+    && chmod +x /usr/local/bin/wait-for-it
+
+COPY . /loadgen
+
+COPY docker-entrypoint.sh /usr/local/bin
+
+ENTRYPOINT ["docker-entrypoint.sh"]

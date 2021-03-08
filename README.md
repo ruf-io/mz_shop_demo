@@ -1,86 +1,173 @@
-# chbench
+# Simple Demo
 
-This is a demonstration of Materialize on [CH-benCHmark]—a mashup of TPC-C and
-TPC-H designed to test the speed of analytics queries on a rapidly changing
-dataset.
+This simple demo aims to show what Materialize feels like for end users of its
+direct SQL output. To accomplish this, it launches all of the requisite
+infrastructure (MySQL, Debezium, Kafka, etc.), as well as a MySQL load
+generator. From there, you can launch the Materialize CLI, define sources and
+materialized views, and watch it maintain those views in real time.
 
-There are several moving pieces to this demo. At the bottom of the stack, we
-have a MySQL or Postgres instance that stores the TPC-C dataset. We connect the
-CH-benCHmark's transactional load generator to this database instance, sending a
-configurable volume of new orders and such through the database. Then, we pipe the
-MySQL/Postgres binlog into Kafka (via Debezium and Kafka Connect, though the details are
-not so important), and plug `materialized` into the other end. Then we
-install the TPC-H queries into `materialized` as materialized views, and watch
-as they magically stay up to date.
+To simplify deploying all of this infrastructure, the demo is enclosed in a
+series of Docker images glued together via Docker Compose. As a secondary
+benefit, you can run the demo via Linux, an EC2 VM instance, or a Mac laptop.
 
-The components are orchestrated via [Mzconduct][mzconduct], which
-runs each component in a Docker container as part of different workloads. You can run this demo via Linux,
-an EC2 VM instance, or a Mac laptop. Note that running Docker Compose will cause
-some overhead on macOS; to measure performance, you'll want to use Linux.
+For a better sense of what this deployment looks like, see our [architecture
+documentation](https://materialize.com/docs/overview/architecture)––the only
+components not accounted for there are:
 
-Should you want to run this demo on a Mac laptop, you'll
-want to increase memory available to Docker Engine using the following steps:
-   1. Open Docker for Mac's preferences window
-   2. Go to the "Advanced" section.
-   3. Slide the "Memory" slider to at least 8 GiB.
-   4. Click "Apply and Restart".
+- Kafka's infrastructure (e.g. Zookeeper)
+- The MySQL load generator in this demo
 
-## Starting workflows
+## What to Expect
 
-ChBench exposes a number of workloads (load-test, heavy-load, consistency-test, ...). The full list of worklows is available by calling 'materizalize/bin/mzconduct help-worflows chbench'. New workflows can be added by modifying mzcompose.yml
+Our load generator (`simple-loadgen`) populates MySQL with 3 tables: `region`,
+`user`, and `purchase`.
 
-To bring containers up only: please run `materialize/bin/mzconduct up chbench`.
-To bring containers down (keeping volumes and storage), please run `materialize/bin/mzconduct down chbench`
-To run a specific workflow, please run `materialize/bin/mzconduct run chbench -w name`, where name is the name of the chosen workflow.
+![simple demo schema](../../www/static/images/simple_demo_schema.png)
 
-## Using the MySQL CLI
+The database gets seeded with regions, users in those regions, and the purchases
+those users make. After seeding, users continue making purchases (~10/second for
+~15 minutes).
 
-If you want to access a MySQL shell, run the following in the
-`demo/chbench` directory:
+As these writes occur, Debezium/Kafka stream the changes out of MySQL.
+Materialize subscribes to this change feed and maintains our materialized views
+with the incoming data––materialized views typically being some report whose
+information we're regularly interested in viewing.
 
-```
-./mzcompose run mysqlcli
-```
+For example, if we wanted real time statistics of total sales by region,
+Materialize could maintain that report as a materialized view. And, in fact,
+that is exactly what this demo will show.
 
-## Using the Postgres CLI
+## Prepping Mac Laptops
 
-If you want to access a PostgreSQL shell, run the following in the
-`demo/chbench` directory:
+If you're on a Mac laptop, you might want to increase the amount of memory
+available to Docker Engine.
 
-```
-./mzcompose -f run postgrescli
-```
+1. From the Docker Desktop menu bar app, select **Preferences**.
+1. Go to the **Advanced** tab.
+1. Select at least **8 GiB** of **Memory**.
+1. Click **Apply and Restart**.
 
-## Viewing metrics
+## Running the Demo
 
-There are several services that can be used to see how materialize is running. Our custom
-system is via grafana, and when you run `./mzcompose -f run dashboard` you will get grafana
-listening on port 3000. This container is started automatically in most workloafs
+1. Bring up the Docker Compose containers in the background:
 
-To view metrics, just visit: http://localhost:3000
+    ```shell session
+    $ ./mzcompose up -d
+    Creating network "demo_default" with the default driver
+    Creating demo_inspect_1      ... done
+    Creating demo_chbench_1      ... done
+    Creating demo_cli_1          ... done
+    Creating demo_mysql_1        ... done
+    Creating demo_materialized_1 ... done
+    Creating demo_connector_1    ... done
+    Creating demo_zookeeper_1    ... done
+    Creating demo_kafka_1        ... done
+    Creating demo_connect_1         ... done
+    Creating demo_schema-registry_1 ... done
+    ```
 
-If you want to be able to edit the dashboard you will need to log in:
-http://localhost:3000/login the username/password is admin/admin.
+    If all goes well, you'll have MySQL, ZooKeeper, Kafka, Kafka Connect,
+    Materialize, and a load generator running, each in their own container, with
+    Debezium configured to ship changes from MySQL into Kafka.
 
-If you don't save the dashboard then **reloading the page will destroy your edits**.
-Click the save floppy disk icon and copy the resulting JSON into
-`grafana/dashboards/materialize.json`.
+1. Launch the Materialize CLI.
 
-## Running with less Docker
+    ```shell session
+    ./mzcompose run cli
+    ```
 
-Docker can get in the way of debugging materialized—for example, it makes
-running `perf` on the materialized binary challenging. There are two easy ways
-around this:
+1. Now that you're in the Materialize CLI (denoted by the terminal prefix
+   `mz>`), define all of the tables in `mysql.simple` as Kafka sources in
+   Materialize.
 
-  * Running the `materialized` process outside of Docker, as described in
-    ["Running with minimal Docker"](docker-local.md).
-  * Using the [Nix test harness][nix] in the mtrlz-setup repository.
+    ```sql
+    CREATE SOURCE purchase
+    FROM KAFKA BROKER 'kafka:9092' TOPIC 'mysql.simple.purchase'
+    FORMAT AVRO USING CONFLUENT SCHEMA REGISTRY 'http://schema-registry:8081'
+    ENVELOPE DEBEZIUM;
 
-[nix]: https://github.com/MaterializeInc/mtrlz-setup/tree/master/nix
+    CREATE SOURCE region
+    FROM KAFKA BROKER 'kafka:9092' TOPIC 'mysql.simple.region'
+    FORMAT AVRO USING CONFLUENT SCHEMA REGISTRY 'http://schema-registry:8081'
+    ENVELOPE DEBEZIUM;
 
-## Running on AWS EC2
+    CREATE SOURCE user
+    FROM KAFKA BROKER 'kafka:9092' TOPIC 'mysql.simple.user'
+    FORMAT AVRO USING CONFLUENT SCHEMA REGISTRY 'http://schema-registry:8081'
+    ENVELOPE DEBEZIUM;
+    ```
 
-Materialize employees can follow the instructions in the infrastructure
-repository for running a semi-automatic load test on AWS EC2.
+1. Create a view for Materialize to maintain. In this case, we'll keep a sum of
+   all purchases made by users in each region:
 
-See: https://github.com/MaterializeInc/infra/tree/main/cloud#starting-a-load-test
+    ```sql
+    CREATE MATERIALIZED VIEW purchase_sum_by_region AS
+        SELECT sum(purchase.amount) AS region_sum, region.id AS region_id
+        FROM purchase
+        INNER JOIN user ON purchase.user_id = user.id
+        INNER JOIN region ON region.id = user.region_id
+        GROUP BY region.id;
+    ```
+
+1. Read the materialized view.
+
+    ```sql
+    SELECT * FROM purchase_sum_by_region;
+    ```
+
+    Go ahead and do that a few times; you should see the `region_sum` continue
+    to increase for all `region_id`s.
+
+    The first time you run the command, you may see a message stating "At least
+    one input has no complete timestamps yet." This indicates that Materialize
+    is still reading the initial batch of data from Kafka, and is usually
+    resolved by trying again in a few moments.
+
+1. Close out of the Materialize CLI (<kbd>Ctrl</kbd> + <kbd>D</kbd>).
+
+1. Watch the report change using the `watch-sql` container, which continually
+   streams changes from Materialize to your terminal.
+
+    ```shell
+    ./mzcompose run cli watch-sql "SELECT * FROM purchase_sum_by_region"
+    ```
+
+1. Once you're sufficiently wowed, close out of the `watch-sql` container
+   (<kbd>Ctrl</kbd> + <kbd>D</kbd>), and bring the entire demo down.
+
+    ```shell
+    ./mzcompose down
+    ```
+
+### Troubleshooting
+
+If you encounter any issues, such as not being able to create sources in
+Materialize or `purchase_sum_by_region` being empty, go through the following
+steps.
+
+1. Launch MySQL instance.
+
+    ```shell
+    ./mzcompose run mysqlcli
+    ```
+
+1. Run the query that the view is based on directly within MySQL.
+
+    ```sql
+    USE simple;
+    SELECT  sum(purchase.amount) AS region_sum,
+            region.id AS region_id
+    FROM purchase
+    INNER JOIN user
+        ON purchase.user_id = user.id
+    INNER JOIN region
+        ON region.id = user.region_id
+    GROUP BY region.id;
+    ```
+
+If you see values here, there is likely an issue with Debezium or Kafka
+streaming the values out of MySQL; check the Kafka connector logs using
+`./mzcompose logs -f connector`.
+
+If you don't see values here, there is likely an issue with the load generator;
+check its logs using `./mzcompose logs loadgen`.

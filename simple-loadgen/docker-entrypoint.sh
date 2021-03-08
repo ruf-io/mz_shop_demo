@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 # Copyright Materialize, Inc. All rights reserved.
 #
 # Use of this software is governed by the Business Source License
@@ -7,16 +9,10 @@
 # the Business Source License, use of this software will be governed
 # by the Apache License, Version 2.0.
 
-collector_name: tpcch
-metrics:
-  - metric_name: debezium_tpcch_table_rows
-    query: |
-      SELECT table_rows, table_name
-      FROM information_schema.tables
-      WHERE table_schema = 'tpcch';
-    help: number of rows in each table
-    type: gauge
-    values:
-      - table_rows
-    key_labels:
-      - table_name
+set -euo pipefail
+
+wait-for-it --timeout=60 mysql:3306
+
+cd /loadgen
+
+go run main.go
