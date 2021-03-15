@@ -28,8 +28,8 @@ producer = KafkaProducer(bootstrap_servers=['localhost:9092'],
 def generatePageview(user_id, product_id):
     return {
         "user_id": user_id,
-        "url": f'/products/{product_id}'
-        "channel": channels[random.randint(len(channels))]
+        "url": f'/products/{product_id}',
+        "channel": channels[random.randint(len(channels))],
         "received_at": int(time.time())
     }
 
