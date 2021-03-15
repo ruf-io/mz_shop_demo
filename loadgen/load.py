@@ -63,6 +63,14 @@ try:
             )
             connection.commit()
             print("Seeding data...")
+            print(item_insert)
+            print([
+                    [
+                        barnum.create_nouns(),
+                        random.randint(itemPriceMin*100,itemPriceMax*100)/100,
+                        random.randint(itemInventoryMin,itemInventoryMax)
+                    ] for i in range(3)
+                ])
             cursor.executemany(
                 item_insert,
                 [
