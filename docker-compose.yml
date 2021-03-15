@@ -59,6 +59,7 @@ services:
   connector:
     build: connector
     command: "true"
+    tty: true
   loadgen:
     build: loadgen
     depends_on: [mysql]
