@@ -65,29 +65,29 @@ try:
             print("Seeding data...")
             print(item_insert)
             print([
-                    [
+                    (
                         barnum.create_nouns(),
                         random.randint(itemPriceMin*100,itemPriceMax*100)/100,
                         random.randint(itemInventoryMin,itemInventoryMax)
-                    ] for i in range(3)
+                     ) for i in range(3)
                 ])
             cursor.executemany(
                 item_insert,
                 [
-                    [
+                    (
                         barnum.create_nouns(),
                         random.randint(itemPriceMin*100,itemPriceMax*100)/100,
                         random.randint(itemInventoryMin,itemInventoryMax)
-                    ] for i in range(itemSeedCount)
+                    ) for i in range(itemSeedCount)
                 ]
             )
             cursor.executemany(
                 user_insert,
                 [
-                    [
+                    (
                         barnum.create_email(),
                         (random.randint(0,10) > 8)
-                    ] for i in range(userSeedCount)
+                     ) for i in range(userSeedCount)
                 ]
             )
             connection.commit()
