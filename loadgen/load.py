@@ -29,7 +29,7 @@ def generatePageview(user_id, product_id):
     return {
         "user_id": user_id,
         "url": f'/products/{product_id}',
-        "channel": channels[random.randint(0, len(channels))],
+        "channel": random.choice(channels),
         "received_at": int(time.time())
     }
 
@@ -107,8 +107,8 @@ try:
             print("Preparing to loop + seed kafka pageviews and purchases")
             for i in range(purchaseGenCount):
                 # Get a user and item to purchase
-                purchase_item = item_prices[random.randint(0,len(item_prices))]
-                purchase_user = random.randint(0,userSeedCount)
+                purchase_item = random.choice(item_prices)
+                purchase_user = random.randint(0,userSeedCount-1)
                 purchase_quantity = random.randint(1,5)
 
                 # Write purchaser pageview
@@ -116,7 +116,7 @@ try:
 
                 # Write random pageviews
                 for i in range(10):
-                    producer.send('pageview', value=generatePageview(random.randint(0,userSeedCount), random.randint(0,itemSeedCount)))
+                    producer.send('pageview', value=generatePageview(random.randint(0,userSeedCount-1), random.randint(0,itemSeedCount-1)))
 
                 # Write purchase row
                 cursor.execute(
