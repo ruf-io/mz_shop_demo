@@ -16,12 +16,6 @@ services:
      - MYSQL_ROOT_PASSWORD=debezium
      - MYSQL_USER=mysqluser
      - MYSQL_PASSWORD=mysqlpw
-  mysqlcli:
-    image: debezium/example-mysql:1.4
-    command: ["mysql", "--host=mysql", "--port=3306", "--user=root", "--password=debezium"]
-    init: true
-    depends_on:
-      - mysql
   zookeeper:
     image: confluentinc/cp-zookeeper:5.5.3
     environment:
@@ -59,11 +53,3 @@ services:
   loadgen:
     build: simple-loadgen
     depends_on: [mysql]
-  cli:
-    image: materialize/cli
-    init: true
-    depends_on:
-      - materialized
-  inspect:
-    image: ubuntu:bionic-20200403
-    command: "true"
