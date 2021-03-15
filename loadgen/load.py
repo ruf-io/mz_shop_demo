@@ -19,7 +19,7 @@ purchase_insert = "INSERT INTO shop.purchases (user_id, item_id, quantity, purch
 
 try:
     with connect(
-        host="mysql",
+        host="localhost",
         user='root',
         password='debezium',
     ) as connection:
