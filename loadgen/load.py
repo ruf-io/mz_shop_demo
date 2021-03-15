@@ -74,7 +74,7 @@ try:
                 ]
             )
             cursor.executemany(
-                item_insert,
+                user_insert,
                 [
                     [
                         barnum.create_email(),
