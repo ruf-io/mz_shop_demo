@@ -4,8 +4,6 @@ services:
     image: materialize/materialized:v0.7.0
     init: true
     command: -w1 --disable-telemetry
-    environment:
-      - MZ_DEV=1
     ports:
       - 6875:6875
   mysql:
