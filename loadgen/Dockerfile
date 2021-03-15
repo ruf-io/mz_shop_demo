@@ -11,4 +11,4 @@ COPY . /loadgen
 
 COPY docker-entrypoint.sh /usr/local/bin
 
-ENTRYPOINT ["docker-entrypoint.sh"]
+ENTRYPOINT ["/bin/bash"]
