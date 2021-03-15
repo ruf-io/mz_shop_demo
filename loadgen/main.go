@@ -32,7 +32,7 @@ const (
 
 var (
 	items []item
-	kafkaBrokers = []string{"127.0.0.1:9092"}
+	kafkaBrokers = []string{"kafka:9092"}
 	firstNames   = [20]string{"Liam", "Olivia", "Noah", "Emma", "Oliver", "Ava", "William", "Sophia","Elijah", "Isabella", "James", "Charlotte", "Benjamin", "Amelia", "Lucas", "Mia", "Mason", "Harper", "Ethan", "Evelyn"}
 	lastNames    = [20]string{"Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Rodriguez", "Martinez", "Hernandez", "Lopez", "Gonzalez", "Wilson", "Anderson", "Thomas", "Taylor", "Moore", "Jackson", "Martin"}
 	descriptors  = [20]string{ "Adaptable", "Ambitious", "Brave", "Calm", "Cheerful", "Classic", "Cultured", "Delightful", "Delicate", "Familiar", "Fearless", "Gentle", "Harmonious", "Joyous", "Lovely", "Lucky", "Noble", "Original", "Timeless", "Wise" }
