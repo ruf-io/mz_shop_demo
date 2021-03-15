@@ -6,7 +6,8 @@ import (
 	"math/rand"
 	"time"
 	"strings"
-
+	"github.com/Shopify/sarama"
+	
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -26,15 +27,37 @@ const (
 	item_inventory_max = 1000
 	item_price_min     = 5.0
 	item_price_max     = 500.0
+	kafka_topic              = "pageview"
 )
 
 var (
+	kafka_brokers = []string{"127.0.0.1:9092"}
 	items []item
 	first_names = [20]string{"Liam", "Olivia", "Noah", "Emma", "Oliver", "Ava", "William", "Sophia","Elijah", "Isabella", "James", "Charlotte", "Benjamin", "Amelia", "Lucas", "Mia", "Mason", "Harper", "Ethan", "Evelyn"}
 	last_names = [20]string{"Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Rodriguez", "Martinez", "Hernandez", "Lopez", "Gonzalez", "Wilson", "Anderson", "Thomas", "Taylor", "Moore", "Jackson", "Martin"}
 	descriptors = [20]string{ "Adaptable", "Ambitious", "Brave", "Calm", "Cheerful", "Classic", "Cultured", "Delightful", "Delicate", "Familiar", "Fearless", "Gentle", "Harmonious", "Joyous", "Lovely", "Lucky", "Noble", "Original", "Timeless", "Wise" }
 	products = [15]string{"Fedora", "Boater", "Snapback", "Trilby", "Panama", "Bowler", "Dad", "Newsboy", "Flat Cap", "Beanie", "Bucket", "Baseball", "Trapper", "Pork Pie", "Top Hat"}
 )
+
+func newProducer() (sarama.SyncProducer, error) {
+	config := sarama.NewConfig()
+	config.Producer.Partitioner = sarama.NewRandomPartitioner
+	config.Producer.RequiredAcks = sarama.WaitForAll
+	config.Producer.Return.Successes = true
+	producer, err := sarama.NewSyncProducer(brokers, config)
+
+	return producer, err
+}
+
+func prepareMessage(topic, message string) *sarama.ProducerMessage {
+	msg := &sarama.ProducerMessage{
+		Topic:     topic,
+		Partition: -1,
+		Value:     sarama.StringEncoder(message),
+	}
+
+	return msg
+}
 
 
 func doExec(db *sql.DB, str string) {
@@ -175,12 +198,40 @@ func main() {
 	fmt.Printf("Generating %d purchases (%d/s for %dm)\n",
 		purchaseGenCount, purchaseGenPerSecond, purchaseGenPeriod)
 
+	//Initialize kafka producer
+	producer, err := newProducer()
+	if err != nil {
+		fmt.Println("Could not create producer: ", err)
+	}
+
 	// Continue generating purchases.
 	for i := 0; i < 10000; i++ {
+
 		var purchase_item = items[rnd.Intn(len(items))]
 		var quantity = rnd.Intn(4) + 1
+		var purchase_user = rnd.Intn(userSeedCount)
+
+		//WRITE PURCHASE PAGEVIEW
+		msg := prepareMessage(kafka_topic, fmt.Sprintf("{'user_id': %d, 'item_id': %d, 'received_at': %d}", purchase_user, purchase_item, time.Now().Unix())
+		partition, offset, err := producer.SendMessage(msg)
+		if err != nil {
+			fmt.Fprintf(w, "%s error occured.", err.Error())
+		}
+		//WRITE SOME OTHER RANDOM PAGEVIEWS
+		for j := 0; j < 10; j++ {
+			msg := prepareMessage(kafka_topic, fmt.Sprintf("{'user_id': %d, 'item_id': %d, 'received_at': %d}", rnd.Intn(userSeedCount), rnd.Intn(itemSeedCount), time.Now().Unix())
+			partition, offset, err := producer.SendMessage(msg)
+			if err != nil {
+				fmt.Fprintf(w, "%s error occured.", err.Error())
+			}
+		}
+		
+		time.Sleep(sleepTime)
+
+		//WRITE PURCHASE
+		
 		_, err = insertPurchase.Exec(
-			rnd.Intn(userSeedCount),
+			purchase_user,
 			purchase_item.id,
 			quantity,
 			(purchase_item.price * float64(quantity)),
@@ -189,8 +240,6 @@ func main() {
 		if err != nil {
 			panic(err.Error())
 		}
-		
-		time.Sleep(sleepTime)
 	}
 
 	fmt.Println("Done generating purchases. ttfn.")
