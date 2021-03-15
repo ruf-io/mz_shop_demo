@@ -142,7 +142,7 @@ func main() {
 	}
 
 	fmt.Println("Getting shop items...")
-	rows, err := db.Query("SELECT id, price FROM items;")
+	rows, err := db.Query("SELECT id, price FROM shop.items;")
 	if err != nil {
 		// handle this error better than this
 		panic(err)
