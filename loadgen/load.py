@@ -22,7 +22,7 @@ purchase_insert = "INSERT INTO shop.purchases (user_id, item_id, quantity, purch
 try:
     with connect(
         host="mysql:3306",
-        user='root'
+        user='root',
         password='debezium',
     ) as connection:
         with connection.cursor() as cursor:
