@@ -23,20 +23,20 @@ const (
 	purchaseSeedCount  = 100
 	purchaseGenCount   = 10000
 	purchaseGenEveryMS = 100
-	item_inventory_min = 10
-	item_inventory_max = 1000
-	item_price_min     = 5.0
-	item_price_max     = 500.0
-	kafka_topic              = "pageview"
+	itemInventoryMin   = 10
+	itemInventoryMax   = 1000
+	itemPriceMin       = 5.0
+	itemPriceMax       = 500.0
+	kafkaTopic         = "pageview"
 )
 
 var (
-	kafka_brokers = []string{"127.0.0.1:9092"}
 	items []item
-	first_names = [20]string{"Liam", "Olivia", "Noah", "Emma", "Oliver", "Ava", "William", "Sophia","Elijah", "Isabella", "James", "Charlotte", "Benjamin", "Amelia", "Lucas", "Mia", "Mason", "Harper", "Ethan", "Evelyn"}
-	last_names = [20]string{"Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Rodriguez", "Martinez", "Hernandez", "Lopez", "Gonzalez", "Wilson", "Anderson", "Thomas", "Taylor", "Moore", "Jackson", "Martin"}
-	descriptors = [20]string{ "Adaptable", "Ambitious", "Brave", "Calm", "Cheerful", "Classic", "Cultured", "Delightful", "Delicate", "Familiar", "Fearless", "Gentle", "Harmonious", "Joyous", "Lovely", "Lucky", "Noble", "Original", "Timeless", "Wise" }
-	products = [15]string{"Fedora", "Boater", "Snapback", "Trilby", "Panama", "Bowler", "Dad", "Newsboy", "Flat Cap", "Beanie", "Bucket", "Baseball", "Trapper", "Pork Pie", "Top Hat"}
+	kafkaBrokers = []string{"127.0.0.1:9092"}
+	firstNames   = [20]string{"Liam", "Olivia", "Noah", "Emma", "Oliver", "Ava", "William", "Sophia","Elijah", "Isabella", "James", "Charlotte", "Benjamin", "Amelia", "Lucas", "Mia", "Mason", "Harper", "Ethan", "Evelyn"}
+	lastNames    = [20]string{"Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Rodriguez", "Martinez", "Hernandez", "Lopez", "Gonzalez", "Wilson", "Anderson", "Thomas", "Taylor", "Moore", "Jackson", "Martin"}
+	descriptors  = [20]string{ "Adaptable", "Ambitious", "Brave", "Calm", "Cheerful", "Classic", "Cultured", "Delightful", "Delicate", "Familiar", "Fearless", "Gentle", "Harmonious", "Joyous", "Lovely", "Lucky", "Noble", "Original", "Timeless", "Wise" }
+	products     = [15]string{"Fedora", "Boater", "Snapback", "Trilby", "Panama", "Bowler", "Dad", "Newsboy", "Flat Cap", "Beanie", "Bucket", "Baseball", "Trapper", "Pork Pie", "Top Hat"}
 )
 
 func newProducer() (sarama.SyncProducer, error) {
@@ -44,7 +44,7 @@ func newProducer() (sarama.SyncProducer, error) {
 	config.Producer.Partitioner = sarama.NewRandomPartitioner
 	config.Producer.RequiredAcks = sarama.WaitForAll
 	config.Producer.Return.Successes = true
-	producer, err := sarama.NewSyncProducer(kafka_brokers, config)
+	producer, err := sarama.NewSyncProducer(kafkaBrokers, config)
 
 	return producer, err
 }
@@ -58,7 +58,6 @@ func prepareMessage(topic, message string) *sarama.ProducerMessage {
 
 	return msg
 }
-
 
 func doExec(db *sql.DB, str string) {
 	_, err := db.Exec(str)
@@ -135,8 +134,8 @@ func main() {
 		// Insert user with random region.
 		_, err = insertItem.Exec(
 			fmt.Sprintf("The %s %s", descriptors[rnd.Intn(len(descriptors))], products[rnd.Intn(len(products))]),
-			rnd.Intn(item_price_max - item_price_min) + item_price_min,
-			(rnd.Intn(item_inventory_max - item_inventory_min) + item_inventory_min),
+			rnd.Intn(itemPriceMax - itemPriceMin) + itemPriceMin,
+			(rnd.Intn(itemInventoryMax - itemInventoryMin) + itemInventoryMin),
 		)
 
 		if err != nil {
@@ -147,7 +146,7 @@ func main() {
 	fmt.Printf("Seeding %d users...", userSeedCount)
 	for i := 0; i < userSeedCount; i++ {
 		// Insert user with random name/email/is_vip status.
-		var user_name = fmt.Sprintf("%s %s", first_names[rnd.Intn(len(first_names))], last_names[rnd.Intn(len(last_names))])
+		var user_name = fmt.Sprintf("%s %s", firstNames[rnd.Intn(len(firstNames))], lastNames[rnd.Intn(len(lastNames))])
 		var email = fmt.Sprintf("%s@%s", strings.Replace(user_name, " ", ".", -1), "gmail.com")
 		var is_vip = false
 		if rnd.Intn(10) == 9 {
@@ -167,7 +166,6 @@ func main() {
 	fmt.Println("Getting shop items...")
 	rows, err := db.Query("SELECT id, price FROM shop.items;")
 	if err != nil {
-		// handle this error better than this
 		panic(err)
 	}
 	defer rows.Close()
@@ -212,17 +210,18 @@ func main() {
 		var purchase_user = rnd.Intn(userSeedCount)
 
 		//WRITE PURCHASE PAGEVIEW
-		msg := prepareMessage(kafka_topic, fmt.Sprintf("{'user_id': %d, 'item_id': %d, 'received_at': %d}", purchase_user, purchase_item, time.Now().Unix()))
-		partition, offset, err := producer.SendMessage(msg)
+		msg := prepareMessage(kafkaTopic, fmt.Sprintf("{'user_id': %d, 'item_id': %d, 'received_at': %d}", purchase_user, purchase_item, time.Now().Unix()))
+		err := producer.SendMessage(msg)
 		if err != nil {
-			panic(err.Error())
+			fmt.Fprintf(w, "%s error occured.", err.Error())
 		}
+		
 		//WRITE SOME OTHER RANDOM PAGEVIEWS
 		for j := 0; j < 10; j++ {
-			msg := prepareMessage(kafka_topic, fmt.Sprintf("{'user_id': %d, 'item_id': %d, 'received_at': %d}", rnd.Intn(userSeedCount), rnd.Intn(itemSeedCount), time.Now().Unix()))
-			partition, offset, err := producer.SendMessage(msg)
+			msg := prepareMessage(kafkaTopic, fmt.Sprintf("{'user_id': %d, 'item_id': %d, 'received_at': %d}", rnd.Intn(userSeedCount), rnd.Intn(itemSeedCount), time.Now().Unix()))
+			err := producer.SendMessage(msg)
 			if err != nil {
-				panic(err.Error())
+				fmt.Fprintf(w, "%s error occured.", err.Error())
 			}
 		}
 		
