@@ -35,7 +35,7 @@ def generatePageview(user_id, product_id):
 
 try:
     with connect(
-        host="localhost",
+        host="mysql",
         user='root',
         password='debezium',
     ) as connection:
