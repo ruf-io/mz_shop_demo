@@ -64,7 +64,7 @@ func main() {
 
 	doExec(db, "CREATE DATABASE shop;")
 
-	doExec(db, `CREATE TABLE  shop.user
+	doExec(db, `CREATE TABLE  shop.users
 		(
 			id SERIAL PRIMARY KEY,
 			name VARCHAR(100),
@@ -74,7 +74,7 @@ func main() {
   			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 		);`)
 
-	doExec(db, `CREATE TABLE shop.item
+	doExec(db, `CREATE TABLE shop.items
 		(
 			id SERIAL PRIMARY KEY,
 			name VARCHAR(100),
@@ -84,7 +84,7 @@ func main() {
   			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 		);`)
 
-	doExec(db, `CREATE TABLE shop.purchase
+	doExec(db, `CREATE TABLE shop.purchases
 		(
 			id SERIAL PRIMARY KEY,
 			user_id BIGINT UNSIGNED REFERENCES user(id),
@@ -97,11 +97,11 @@ func main() {
 		);`)
 
 	insertItem := genPrepare(db,
-		"INSERT INTO shop.item (name, price, daily_inventory) VALUES ( ?, ?, ? );")
+		"INSERT INTO shop.items (name, price, daily_inventory) VALUES ( ?, ?, ? );")
 	insertUser := genPrepare(db,
-		"INSERT INTO shop.user (name, email, is_vip) VALUES ( ?, ?, ? );")
+		"INSERT INTO shop.users (name, email, is_vip) VALUES ( ?, ?, ? );")
 	insertPurchase := genPrepare(db,
-		"INSERT INTO shop.purchase (user_id, item_id, quantity, purchase_price) VALUES ( ?, ?, ?, ? );")
+		"INSERT INTO shop.purchases (user_id, item_id, quantity, purchase_price) VALUES ( ?, ?, ?, ? );")
 	
 	rndSrc := rand.NewSource(time.Now().UnixNano())
 	rnd := rand.New(rndSrc)
