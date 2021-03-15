@@ -13,8 +13,8 @@ itemPriceMin       = 5
 itemPriceMax       = 500
 kafkaTopic         = "pageview"
 
-item_insert = "INSERT INTO shop.items (name, price, daily_inventory) VALUES ( ?, ?, ? )"
-user_insert = "INSERT INTO shop.users (email, is_vip) VALUES ( ?, ? )"
+item_insert = "INSERT INTO shop.items (name, price, daily_inventory) VALUES ( %s, %s, %s )"
+user_insert = "INSERT INTO shop.users (email, is_vip) VALUES ( %s, %s )"
 purchase_insert = "INSERT INTO shop.purchases (user_id, item_id, quantity, purchase_price) VALUES ( ?, ?, ?, ? )"
 
 try:
