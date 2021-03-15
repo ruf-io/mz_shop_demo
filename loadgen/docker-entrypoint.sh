@@ -4,4 +4,4 @@ wait-for-it --timeout=60 mysql:3306
 
 cd /loadgen
 
-tail -f anything
+tail -f load.py
