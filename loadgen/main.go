@@ -47,9 +47,9 @@ func main() {
 	}
 	defer db.Close()
 
-	doExec(db, "DROP DATABASE shop")
+	doExec(db, "DROP DATABASE shop;")
 
-	doExec(db, "CREATE DATABASE shop")
+	doExec(db, "CREATE DATABASE shop;")
 
 	doExec(db, `CREATE TABLE  shop.user
 		(
@@ -91,20 +91,19 @@ func main() {
 		);`)
 
 	insertItem := genPrepare(db,
-		"INSERT INTO shop.item (name, price, daily_inventory) VALUES ( ?, ?, ? )")
+		"INSERT INTO shop.item (name, price, daily_inventory) VALUES ( ?, ?, ? );")
 	insertUser := genPrepare(db,
-		"INSERT INTO shop.user (name, email, is_vip) VALUES ( ?, ?, ? )")
+		"INSERT INTO shop.user (name, email, is_vip) VALUES ( ?, ?, ? );")
 	insertPurchase := genPrepare(db,
-		"INSERT INTO shop.purchase (user_id) VALUES ( ? )")
+		"INSERT INTO shop.purchase (user_id) VALUES ( ? );")
 	insertPurchaseItem := genPrepare(db,
-		"INSERT INTO shop.purchase_item (purchase_id, item_id, quantity, purchase_price) VALUES ( ?, ?, ?, ? )")
-	updateRegionTime := genPrepare(db, "UPDATE shop.region SET time = ?")
-	updateUserTime := genPrepare(db, "UPDATE shop.user SET time = ?")
+		"INSERT INTO shop.purchase_item (purchase_id, item_id, quantity, purchase_price) VALUES ( ?, ?, ?, ? );")
 
 	rndSrc := rand.NewSource(time.Now().UnixNano())
 	rnd := rand.New(rndSrc)
 
-	// Seed Items.
+	
+	fmt.Println("Seeding %d shop items...", itemSeedCount)
 	for i := 0; i < itemSeedCount; i++ {
 		// Insert user with random region.
 		_, err = insertItem.Exec(
@@ -118,7 +117,7 @@ func main() {
 		}
 	}
 
-	// Seed users.
+	fmt.Println("Seeding %d users...", userSeedCount)
 	for i := 0; i < userSeedCount; i++ {
 		// Insert user with random name/email/is_vip status.
 		var user_name = first_names[rnd.Intn(len(first_names))] + " " + last_names[rnd.Intn(len(last_names))]
@@ -137,8 +136,9 @@ func main() {
 		}
 	}
 
-	// Get Items
-	rows, err := db.Query("SELECT id, price FROM items")
+	fmt.Println("Getting shop items...")
+	items = [][]
+	rows, err := db.Query("SELECT id, price FROM items;")
 	if err != nil {
 		// handle this error better than this
 		panic(err)
@@ -152,7 +152,7 @@ func main() {
 		// handle this error
 		panic(err)
 		}
-		fmt.Println(id, firstName)
+		items = append(items, [id, price])
 	}
 	// get any error encountered during iteration
 	err = rows.Err()
@@ -160,9 +160,7 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Printf("Inserted %d users\n", userSeedCount)
-
-	// Seed purchases.
+	fmt.Println("Creating purchases...")
 	for i := 0; i < purchaseSeedCount; i++ {
 		// Insert purchase with random amount and user.
 		_, err = insertPurchase.Exec(rnd.Float64()*10000, rnd.Intn(userIDCount)+userIDMin)
@@ -170,8 +168,6 @@ func main() {
 			panic(err.Error())
 		}
 	}
-
-	fmt.Printf("Inserted %d purchases\n", purchaseSeedCount)
 
 	// Do some math to let users understand how fast data changes and how long
 	// the loadgen is set to run.
