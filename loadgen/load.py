@@ -1,5 +1,6 @@
+import barnum, random, time, json
 from mysql.connector import connect, Error
-import barnum, random
+from kafka import KafkaProducer
 
 # CONFIG
 userSeedCount      = 1000
@@ -12,10 +13,25 @@ itemInventoryMax   = 1000
 itemPriceMin       = 5
 itemPriceMax       = 500
 kafkaTopic         = "pageview"
+channels           = ['organic search', 'paid search', 'referral', 'social', 'display']
 
-item_insert = "INSERT INTO shop.items (name, price, daily_inventory) VALUES ( %s, %s, %s )"
-user_insert = "INSERT INTO shop.users (email, is_vip) VALUES ( %s, %s )"
+# INSERT TEMPLATES
+item_insert     = "INSERT INTO shop.items (name, price, daily_inventory) VALUES ( %s, %s, %s )"
+user_insert     = "INSERT INTO shop.users (email, is_vip) VALUES ( %s, %s )"
 purchase_insert = "INSERT INTO shop.purchases (user_id, item_id, quantity, purchase_price) VALUES ( ?, ?, ?, ? )"
+
+#Initialize Kafka
+producer = KafkaProducer(bootstrap_servers=['localhost:9092'],
+                         value_serializer=lambda x: 
+                         json.dumps(x).encode('utf-8'))
+
+def generatePageview(user_id, product_id):
+    return {
+        "user_id": user_id,
+        "url": f'/products/{product_id}'
+        "channel": channels[random.randint(len(channels))]
+        "received_at": int(time.time())
+    }
 
 try:
     with connect(
@@ -63,14 +79,6 @@ try:
             )
             connection.commit()
             print("Seeding data...")
-            print(item_insert)
-            print([
-                    (
-                        barnum.create_nouns(),
-                        random.randint(itemPriceMin*100,itemPriceMax*100)/100,
-                        random.randint(itemInventoryMin,itemInventoryMax)
-                     ) for i in range(3)
-                ])
             cursor.executemany(
                 item_insert,
                 [
@@ -91,5 +99,41 @@ try:
                 ]
             )
             connection.commit()
+
+            print("Getting item ID and PRICEs...")
+            cursor.execute("SELECT id, price FROM shop.items")
+            item_prices = [(row[0], row[1] for row in cursor]
+
+            print("Preparing to loop + seed kafka pageviews and purchases")
+            for i in range(purchaseGenCount):
+                # Get a user and item to purchase
+                purchase_item = item_prices[random.randint(len(item_prices))]
+                purchase_user = random.randint(userSeedCount)
+                purchase_quantity = random.randint(1,5)
+
+                # Write purchaser pageview
+                producer.send('pageview', value=generatePageview(purchase_user, purchase_item[0]))
+
+                # Write random pageviews
+                producer.send('pageview', value=generatePageview(random.randint(userSeedCount), random.randint(itemSeedCount))) for i in range(10)
+
+                # Write purchase row
+                cursor.execute(
+                    purchase_insert,
+                    (
+                        purchase_user,
+                        purchase_item[0],
+                        purchase_quantity,
+                        purchase_item[1] * purchase_quantity
+                    )
+                )
+                connection.commit()
+
+                #Pause
+                time.sleep(purchaseGenEveryMS/1000)
+
+
+    connection.close()
+
 except Error as e:
     print(e)
