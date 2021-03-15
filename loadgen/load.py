@@ -115,7 +115,8 @@ try:
                 producer.send('pageview', value=generatePageview(purchase_user, purchase_item[0]))
 
                 # Write random pageviews
-                producer.send('pageview', value=generatePageview(random.randint(userSeedCount), random.randint(itemSeedCount))) for i in range(10)
+                for i in range(10):
+                    producer.send('pageview', value=generatePageview(random.randint(userSeedCount), random.randint(itemSeedCount)))
 
                 # Write purchase row
                 cursor.execute(
