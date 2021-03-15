@@ -16,8 +16,9 @@ wait-for-it --timeout=60 kafka:9092
 
 topics=(
   mysql.shop.purchase
-  mysql.shop.region
+  mysql.shop.item
   mysql.shop.user
+  pageview
 )
 
 echo "${topics[@]}" | xargs -n1 -P8 kafka-topics --zookeeper zookeeper:2181 --create --if-not-exists --partitions 1 --replication-factor 1 --topic
