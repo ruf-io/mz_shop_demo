@@ -44,7 +44,7 @@ func newProducer() (sarama.SyncProducer, error) {
 	config.Producer.Partitioner = sarama.NewRandomPartitioner
 	config.Producer.RequiredAcks = sarama.WaitForAll
 	config.Producer.Return.Successes = true
-	producer, err := sarama.NewSyncProducer(brokers, config)
+	producer, err := sarama.NewSyncProducer(kafka_brokers, config)
 
 	return producer, err
 }
@@ -215,14 +215,14 @@ func main() {
 		msg := prepareMessage(kafka_topic, fmt.Sprintf("{'user_id': %d, 'item_id': %d, 'received_at': %d}", purchase_user, purchase_item, time.Now().Unix()))
 		partition, offset, err := producer.SendMessage(msg)
 		if err != nil {
-			fmt.Fprintf(w, "%s error occured.", err.Error())
+			panic(err.Error())
 		}
 		//WRITE SOME OTHER RANDOM PAGEVIEWS
 		for j := 0; j < 10; j++ {
 			msg := prepareMessage(kafka_topic, fmt.Sprintf("{'user_id': %d, 'item_id': %d, 'received_at': %d}", rnd.Intn(userSeedCount), rnd.Intn(itemSeedCount), time.Now().Unix()))
 			partition, offset, err := producer.SendMessage(msg)
 			if err != nil {
-				fmt.Fprintf(w, "%s error occured.", err.Error())
+				panic(err.Error())
 			}
 		}
 		
