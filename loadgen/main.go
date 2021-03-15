@@ -60,7 +60,7 @@ func main() {
 	}
 	defer db.Close()
 
-	doExec(db, "DROP DATABASE shop;")
+	doExec(db, "DROP DATABASE IF EXISTS shop;")
 
 	doExec(db, "CREATE DATABASE shop;")
 
