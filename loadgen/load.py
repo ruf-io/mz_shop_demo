@@ -102,7 +102,7 @@ try:
 
             print("Getting item ID and PRICEs...")
             cursor.execute("SELECT id, price FROM shop.items")
-            item_prices = [(row[0], row[1] for row in cursor]
+            item_prices = [(row[0], row[1]) for row in cursor]
 
             print("Preparing to loop + seed kafka pageviews and purchases")
             for i in range(purchaseGenCount):
