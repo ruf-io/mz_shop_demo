@@ -1,4 +1,4 @@
-version: "3.7"
+version: '3.8'
 services:
   materialized:
     image: materialize/materialized:v0.7.0
@@ -48,6 +48,14 @@ services:
      - SCHEMA_REGISTRY_HOST_NAME=schema-registry
      - SCHEMA_REGISTRY_LISTENERS=http://schema-registry:8081,http://localhost:8081
     depends_on: [zookeeper, kafka]
+  kafdrop:
+    image: obsidiandynamics/kafdrop
+    environment:
+      KAFKA_BROKERCONNECT: "kafka:9092"
+      JMX_PORT: 9991
+    depends_on: [zookeeper, kafka]
+    ports:
+      - 9000:9000
   connector:
     build: connector
   loadgen:
