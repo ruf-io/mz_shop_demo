@@ -1,9 +1,11 @@
-FROM golang:1.13.1-buster
+FROM python:3
 
 RUN apt-get update && apt-get -qy install curl
 
 RUN curl -fsSL https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh > /usr/local/bin/wait-for-it \
     && chmod +x /usr/local/bin/wait-for-it
+
+RUN pip install barnum kafka-python
 
 COPY . /loadgen
 
