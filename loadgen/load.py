@@ -1,5 +1,5 @@
 from mysql.connector import connect, Error
-import barnum
+import barnum, random
 
 # CONFIG
 userSeedCount      = 1000
@@ -19,7 +19,7 @@ purchase_insert = "INSERT INTO shop.purchases (user_id, item_id, quantity, purch
 
 try:
     with connect(
-        host="mysql:3306",
+        host="mysql",
         user='root',
         password='debezium',
     ) as connection:
