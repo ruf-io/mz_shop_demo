@@ -58,6 +58,7 @@ services:
       - 9000:9000
   connector:
     build: connector
+    command: "true"
   loadgen:
     build: loadgen
     depends_on: [mysql]
