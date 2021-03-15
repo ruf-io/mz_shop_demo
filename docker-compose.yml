@@ -51,5 +51,5 @@ services:
   connector:
     build: connector
   loadgen:
-    build: simple-loadgen
+    build: loadgen
     depends_on: [mysql]
