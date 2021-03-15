@@ -212,14 +212,14 @@ func main() {
 		var purchase_user = rnd.Intn(userSeedCount)
 
 		//WRITE PURCHASE PAGEVIEW
-		msg := prepareMessage(kafka_topic, fmt.Sprintf("{'user_id': %d, 'item_id': %d, 'received_at': %d}", purchase_user, purchase_item, time.Now().Unix())
+		msg := prepareMessage(kafka_topic, fmt.Sprintf("{'user_id': %d, 'item_id': %d, 'received_at': %d}", purchase_user, purchase_item, time.Now().Unix()))
 		partition, offset, err := producer.SendMessage(msg)
 		if err != nil {
 			fmt.Fprintf(w, "%s error occured.", err.Error())
 		}
 		//WRITE SOME OTHER RANDOM PAGEVIEWS
 		for j := 0; j < 10; j++ {
-			msg := prepareMessage(kafka_topic, fmt.Sprintf("{'user_id': %d, 'item_id': %d, 'received_at': %d}", rnd.Intn(userSeedCount), rnd.Intn(itemSeedCount), time.Now().Unix())
+			msg := prepareMessage(kafka_topic, fmt.Sprintf("{'user_id': %d, 'item_id': %d, 'received_at': %d}", rnd.Intn(userSeedCount), rnd.Intn(itemSeedCount), time.Now().Unix()))
 			partition, offset, err := producer.SendMessage(msg)
 			if err != nil {
 				fmt.Fprintf(w, "%s error occured.", err.Error())
