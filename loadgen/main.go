@@ -54,7 +54,7 @@ func genPrepare(db *sql.DB, str string) *sql.Stmt {
 }
 
 func main() {
-	db, err := sql.Open("mysql", "root:debezium@mysql:3306/")
+	db, err := sql.Open("mysql", "root:debezium@tcp(mysql:3306)/")
 	if err != nil {
 		panic(err.Error())
 	}
