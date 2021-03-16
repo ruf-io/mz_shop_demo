@@ -29,17 +29,6 @@ services:
       KAFKA_JMX_PORT: 9991
     ports:
       - 19092:9092
-  kafka_pageviews:
-    image: confluentinc/cp-enterprise-kafka:5.5.3
-    depends_on: [zookeeper]
-    environment:
-      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka_pageviews:9092,PLAINTEXT_HOST://localhost:29092
-      KAFKA_BROKER_ID: 200
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_JMX_PORT: 9991
-    ports:
-      - 29092:9092
   connect:
     image: debezium/connect:1.4
     environment:
@@ -62,8 +51,8 @@ services:
   kafdrop:
     image: obsidiandynamics/kafdrop
     environment:
-      KAFKA_BROKERCONNECT: "kafka_cdc:9092,kafka_pageviews:9092"
-    depends_on: [zookeeper, kafka_cdc, kafka_pageviews]
+      KAFKA_BROKERCONNECT: "kafka_cdc:9092"
+    depends_on: [zookeeper, kafka_cdc]
     ports:
       - 9000:9000
   connector:
