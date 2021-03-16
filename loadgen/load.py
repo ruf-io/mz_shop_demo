@@ -12,7 +12,7 @@ itemInventoryMin   = 10
 itemInventoryMax   = 1000
 itemPriceMin       = 5
 itemPriceMax       = 500
-kafkaHost          = 'kafka_cdc:9092'
+kafkaHost          = 'kafka:9092'
 kafkaTopic         = 'pageview'
 channels           = ['organic search', 'paid search', 'referral', 'social', 'display']
 

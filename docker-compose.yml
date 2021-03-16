@@ -18,21 +18,19 @@ services:
     image: confluentinc/cp-zookeeper:5.5.3
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
-  kafka_cdc:
+  kafka:
     image: confluentinc/cp-enterprise-kafka:5.5.3
     depends_on: [zookeeper]
     environment:
       KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka_cdc:9092,PLAINTEXT_HOST://localhost:19092
-      KAFKA_BROKER_ID: 100
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_BROKER_ID: 1
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_JMX_PORT: 9991
-    ports:
-      - 19092:9092
   connect:
     image: debezium/connect:1.4
     environment:
-      BOOTSTRAP_SERVERS: kafka_cdc:9092
+      BOOTSTRAP_SERVERS: kafka:9092
       GROUP_ID: 1
       CONFIG_STORAGE_TOPIC: connect_configs
       OFFSET_STORAGE_TOPIC: connect_offsets
@@ -40,19 +38,19 @@ services:
       VALUE_CONVERTER: io.confluent.connect.avro.AvroConverter
       CONNECT_KEY_CONVERTER_SCHEMA_REGISTRY_URL: http://schema-registry:8081
       CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: http://schema-registry:8081
-    depends_on: [kafka_cdc]
+    depends_on: [kafka]
   schema-registry:
     image: confluentinc/cp-schema-registry:5.5.3
     environment:
      - SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL=zookeeper:2181
      - SCHEMA_REGISTRY_HOST_NAME=schema-registry
      - SCHEMA_REGISTRY_LISTENERS=http://schema-registry:8081,http://localhost:8081
-    depends_on: [zookeeper, kafka_cdc]
+    depends_on: [zookeeper, kafka]
   kafdrop:
     image: obsidiandynamics/kafdrop
     environment:
-      KAFKA_BROKERCONNECT: "kafka_cdc:9092"
-    depends_on: [zookeeper, kafka_cdc]
+      KAFKA_BROKERCONNECT: "kafka:9092"
+    depends_on: [zookeeper, kafka]
     ports:
       - 9000:9000
   connector:
