@@ -3,7 +3,7 @@ services:
   materialized:
     image: materialize/materialized:v0.7.0
     init: true
-    command: -w1 --disable-telemetry
+    command: -w8 --disable-telemetry
     ports:
       - 6875:6875
   mysql:
