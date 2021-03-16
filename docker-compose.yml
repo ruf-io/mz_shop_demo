@@ -33,7 +33,7 @@ services:
     depends_on: [zookeeper]
     environment:
       KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka_pageviews:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka_pageviews:9092
       KAFKA_BROKER_ID: 2
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     ports:
@@ -60,7 +60,7 @@ services:
   kafdrop:
     image: obsidiandynamics/kafdrop
     environment:
-      KAFKA_BROKERCONNECT: "kafka:9092,kafka_pageviews:9093"
+      KAFKA_BROKERCONNECT: "kafka:9092,kafka_pageviews:9092"
     depends_on: [zookeeper, kafka, kafka_pageviews]
     ports:
       - 9000:9000
