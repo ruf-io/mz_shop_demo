@@ -37,7 +37,7 @@ services:
       KAFKA_BROKER_ID: 2
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     ports:
-      - 9092:9093
+      - 9093:9092
   connect:
     image: debezium/connect:1.4
     environment:
