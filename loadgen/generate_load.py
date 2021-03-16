@@ -6,7 +6,7 @@ from kafka import KafkaProducer
 userSeedCount      = 10000
 itemSeedCount      = 2000
 purchaseGenCount   = 1000000
-purchaseGenEveryMS = 100
+purchaseGenEveryMS = 50
 itemInventoryMin   = 2000
 itemInventoryMax   = 10000
 itemPriceMin       = 5
