@@ -12,16 +12,15 @@
 set -euo pipefail
 
 wait-for-it --timeout=60 zookeeper:2181
-wait-for-it --timeout=60 kafka:9092
+wait-for-it --timeout=60 kafka_cdc:9092
 
 topics=(
   mysql.shop.purchases
   mysql.shop.items
   mysql.shop.users
-  pageview
 )
 
-echo "${topics[@]}" | xargs -n1 -P8 kafka-topics --zookeeper zookeeper:2181 --create --if-not-exists --partitions 1 --replication-factor 1 --topic
+echo "${topics[@]}" | xargs -n1 -P8 kafka-topics --zookeeper zookeeper:2181 --bootstrap-server kafka_cdc:9092 --create --if-not-exists --partitions 1 --replication-factor 1 --topic
 
 wait-for-it --timeout=60 connect:8083
 wait-for-it --timeout=60 mysql:3306
@@ -36,7 +35,7 @@ curl -H 'Content-Type: application/json' connect:8083/connectors --data '{
     "database.password": "debezium",
     "database.server.name": "mysql",
     "database.server.id": "1234",
-    "database.history.kafka.bootstrap.servers": "kafka:9092",
+    "database.history.kafka.bootstrap.servers": "kafka_cdc:9092",
     "database.history.kafka.topic": "mysql-history",
     "time.precision.mode": "connect"
   }
