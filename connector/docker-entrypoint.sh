@@ -18,6 +18,7 @@ topics=(
   mysql.shop.purchases
   mysql.shop.items
   mysql.shop.users
+  pageview
 )
 
 echo "${topics[@]}" | xargs -n1 -P8 kafka-topics --zookeeper zookeeper:2181 --create --if-not-exists --partitions 1 --replication-factor 1 --topic

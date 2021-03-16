@@ -12,7 +12,8 @@ itemInventoryMin   = 10
 itemInventoryMax   = 1000
 itemPriceMin       = 5
 itemPriceMax       = 500
-kafkaTopic         = "pageview"
+kafkaHost          = 'kafka_pv:9093'
+kafkaTopic         = 'pageview'
 channels           = ['organic search', 'paid search', 'referral', 'social', 'display']
 
 # INSERT TEMPLATES
@@ -21,7 +22,7 @@ user_insert     = "INSERT INTO shop.users (email, is_vip) VALUES ( %s, %s )"
 purchase_insert = "INSERT INTO shop.purchases (user_id, item_id, quantity, purchase_price) VALUES ( %s, %s, %s, %s )"
 
 #Initialize Kafka
-producer = KafkaProducer(bootstrap_servers=['kafka:9092'],
+producer = KafkaProducer(bootstrap_servers=[kafakHost],
                          value_serializer=lambda x: 
                          json.dumps(x).encode('utf-8'))
 
