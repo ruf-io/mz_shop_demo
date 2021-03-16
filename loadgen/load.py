@@ -22,7 +22,7 @@ user_insert     = "INSERT INTO shop.users (email, is_vip) VALUES ( %s, %s )"
 purchase_insert = "INSERT INTO shop.purchases (user_id, item_id, quantity, purchase_price) VALUES ( %s, %s, %s, %s )"
 
 #Initialize Kafka
-producer = KafkaProducer(bootstrap_servers=[kafakHost],
+producer = KafkaProducer(bootstrap_servers=[kafkaHost],
                          value_serializer=lambda x: 
                          json.dumps(x).encode('utf-8'))
 
