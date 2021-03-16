@@ -3,17 +3,16 @@ from mysql.connector import connect, Error
 from kafka import KafkaProducer
 
 # CONFIG
-userSeedCount      = 1000
-itemSeedCount      = 200
-purchaseSeedCount  = 100
-purchaseGenCount   = 10000
+userSeedCount      = 10000
+itemSeedCount      = 2000
+purchaseGenCount   = 1000000
 purchaseGenEveryMS = 100
-itemInventoryMin   = 10
-itemInventoryMax   = 1000
+itemInventoryMin   = 2000
+itemInventoryMax   = 10000
 itemPriceMin       = 5
 itemPriceMax       = 500
 kafkaHost          = 'kafka:9092'
-kafkaTopic         = 'pageview'
+kafkaTopic         = 'pageviews'
 channels           = ['organic search', 'paid search', 'referral', 'social', 'display']
 
 # INSERT TEMPLATES
