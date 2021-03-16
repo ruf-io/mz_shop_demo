@@ -112,11 +112,11 @@ try:
                 purchase_quantity = random.randint(1,5)
 
                 # Write purchaser pageview
-                producer.send('pageview', value=generatePageview(purchase_user, purchase_item[0]))
+                producer.send(b'pageview', value=generatePageview(purchase_user, purchase_item[0]))
 
                 # Write random pageviews
                 for i in range(10):
-                    producer.send('pageview', value=generatePageview(random.randint(0,userSeedCount-1), random.randint(0,itemSeedCount-1)))
+                    producer.send(b'pageview', value=generatePageview(random.randint(0,userSeedCount-1), random.randint(0,itemSeedCount-1)))
 
                 # Write purchase row
                 cursor.execute(

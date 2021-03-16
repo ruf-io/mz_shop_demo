@@ -15,9 +15,9 @@ wait-for-it --timeout=60 zookeeper:2181
 wait-for-it --timeout=60 kafka:9092
 
 topics=(
-  mysql.shop.purchase
-  mysql.shop.item
-  mysql.shop.user
+  mysql.shop.purchases
+  mysql.shop.items
+  mysql.shop.users
   pageview
 )
 
