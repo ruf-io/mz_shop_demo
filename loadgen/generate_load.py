@@ -115,7 +115,7 @@ try:
                 producer.send(kafkaTopic, key=b'test', value=generatePageview(purchase_user, purchase_item[0]))
 
                 # Write random pageviews
-                for i in range(random.randint(5,15)):
+                for i in range(random.randint(50,80)):
                     producer.send(kafkaTopic, key=b'test', value=generatePageview(random.randint(0,userSeedCount), random.randint(0,itemSeedCount)))
 
                 # Write purchase row
