@@ -17,15 +17,15 @@ To generate the data we'll simulate **users**, **items**, **purchases** and **pa
 
 To simplify deploying all of this infrastructure, the demo is enclosed in a series of Docker images glued together via Docker Compose. As a secondary benefit, you can run the demo via Linux, an EC2 VM instance, or a Mac laptop.
 
-The [docker-compose file](docker-compose.yml) spins up 9 containers with the following names, connections and roles:
+The [docker-compose file](docker-compose.yml) spins up containers with the following names, connections and roles:
 ![Shop demo infra](https://user-images.githubusercontent.com/11527560/111649810-18e23e80-87db-11eb-96c0-6518ef7b87ba.png)
 
 ## What to Expect
 
 Our load generator (`loadgen`) is a [python script](loadgen/generate_load.py) that does two things:
 
-1. It seeds MySQL with `item`, `user` and `purchase` tables, and then begins rapidly adding `purchase` rows that join an item and a user. _(~20 per second)_
-2. It simultaneously begins sending JSON-encoded `pageview` events directly to kafka. _(~1,000 per second)_
+1. It seeds MySQL with `item`, `user` and `purchase` tables, and then begins rapidly adding `purchase` rows that join an item and a user. _(~10 per second)_
+2. It simultaneously begins sending JSON-encoded `pageview` events directly to kafka. _(~750 per second)_
 
 As the database writes occur, Debezium/Kafka stream the changes out of MySQL. Materialize subscribes to this change feed and maintains our materialized views with the incoming data––materialized views typically being some report whose information we're regularly interested in viewing.
 
