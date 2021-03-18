@@ -4,11 +4,11 @@ from kafka import KafkaProducer
 
 # CONFIG
 userSeedCount      = 10000
-itemSeedCount      = 2000
+itemSeedCount      = 1000
 purchaseGenCount   = 1000000
 purchaseGenEveryMS = 50
-itemInventoryMin   = 2000
-itemInventoryMax   = 10000
+itemInventoryMin   = 1000
+itemInventoryMax   = 5000
 itemPriceMin       = 5
 itemPriceMax       = 500
 kafkaHost          = 'kafka:9092'
@@ -59,7 +59,8 @@ try:
                         id SERIAL PRIMARY KEY,
                         name VARCHAR(100),
                         price DECIMAL(7,2),
-                        daily_inventory INT,
+                        inventory INT,
+                        inventory_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
                 );"""
