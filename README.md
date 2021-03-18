@@ -1,40 +1,32 @@
-# Simple Demo
+# Real-Time E-Commerce Demo
 
-This simple demo aims to show what Materialize feels like for end users of its
-direct SQL output. To accomplish this, it launches all of the requisite
-infrastructure (MySQL, Debezium, Kafka, etc.), as well as a MySQL load
-generator. From there, you can launch the Materialize CLI, define sources and
-materialized views, and watch it maintain those views in real time.
+This app demonstrates the real-time incremental computation capabilities of Materialize in an e-commerce website.
 
-To simplify deploying all of this infrastructure, the demo is enclosed in a
-series of Docker images glued together via Docker Compose. As a secondary
-benefit, you can run the demo via Linux, an EC2 VM instance, or a Mac laptop.
+**An e-commerce business wants to understand:**
 
-For a better sense of what this deployment looks like, see our [architecture
-documentation](https://materialize.com/docs/overview/architecture)––the only
-components not accounted for there are:
+- **Order trends** throughout the day to discern patterns.
+- What is selling the most?
+  - Understand supply/demand and manage inventory.
+  - Show inventory status in the website to encourage users to buy.
+- **Conversion Funnel:** Effectiveness of the website in converting pageviews to actual buys.
+- **Low-stock Alerts:** Generate alerts and automatically place orders to the warehouse if a specific item is close to running out of stock
 
-- Kafka's infrastructure (e.g. Zookeeper)
-- The MySQL load generator in this demo
+We'll build materialized views that answer most of the questions by providing data in a business intelligence dashboard, and we'll pipe data out to an API to provide answers to the other questions.
+
+To generate the data we'll simulate **users**, **items**, **purchases** and **pageviews** on a fictional e-commerce website.
+
+To simplify deploying all of this infrastructure, the demo is enclosed in a series of Docker images glued together via Docker Compose. As a secondary benefit, you can run the demo via Linux, an EC2 VM instance, or a Mac laptop.
 
 ## What to Expect
 
-Our load generator (`simple-loadgen`) populates MySQL with 3 tables: `region`,
-`user`, and `purchase`.
+Our load generator (`loadgen`) is a [python script](loadgen/generate_load.py) that does two things:
 
-![simple demo schema](../../www/static/images/simple_demo_schema.png)
+1. It seeds MySQL with `item`, `user` and `purchase` tables, and then begins rapidly adding `purchase` rows that join an item and a user. _(~20 per second)_
+2. It simultaneously begins sending JSON-encoded `pageview` events directly to kafka. _(~1,000 per second)_
 
-The database gets seeded with regions, users in those regions, and the purchases
-those users make. After seeding, users continue making purchases (~10/second for
-~15 minutes).
+As the database writes occur, Debezium/Kafka stream the changes out of MySQL. Materialize subscribes to this change feed and maintains our materialized views with the incoming data––materialized views typically being some report whose information we're regularly interested in viewing.
 
-As these writes occur, Debezium/Kafka stream the changes out of MySQL.
-Materialize subscribes to this change feed and maintains our materialized views
-with the incoming data––materialized views typically being some report whose
-information we're regularly interested in viewing.
-
-For example, if we wanted real time statistics of total sales by region,
-Materialize could maintain that report as a materialized view. And, in fact,
+For example, if we wanted real time statistics of total pageviews and orders by item, Materialize could maintain that report as a materialized view. And, in fact,
 that is exactly what this demo will show.
 
 ## Prepping Mac Laptops
@@ -52,11 +44,9 @@ available to Docker Engine.
 1. Bring up the Docker Compose containers in the background:
 
     ```shell session
-    $ ./mzcompose up -d
+    $ docker-compose up -d
     Creating network "demo_default" with the default driver
-    Creating demo_inspect_1      ... done
     Creating demo_chbench_1      ... done
-    Creating demo_cli_1          ... done
     Creating demo_mysql_1        ... done
     Creating demo_materialized_1 ... done
     Creating demo_connector_1    ... done
@@ -70,104 +60,133 @@ available to Docker Engine.
     Materialize, and a load generator running, each in their own container, with
     Debezium configured to ship changes from MySQL into Kafka.
 
-1. Launch the Materialize CLI.
+2. Launch the Materialize CLI.
 
     ```shell session
-    ./mzcompose run cli
+    psql -U materialize -h localhost -p 6875 materialize
     ```
 
-1. Now that you're in the Materialize CLI (denoted by the terminal prefix
-   `mz>`), define all of the tables in `mysql.simple` as Kafka sources in
+3. Now that you're in the Materialize CLI (denoted by the terminal prefix
+   `mz>`), define all of the tables in `mysql.shop` as Kafka sources in
    Materialize.
 
     ```sql
-    CREATE SOURCE purchase
-    FROM KAFKA BROKER 'kafka:9092' TOPIC 'mysql.simple.purchase'
+    CREATE SOURCE purchases
+    FROM KAFKA BROKER 'kafka:9092' TOPIC 'mysql.shop.purchases'
     FORMAT AVRO USING CONFLUENT SCHEMA REGISTRY 'http://schema-registry:8081'
     ENVELOPE DEBEZIUM;
 
-    CREATE SOURCE region
-    FROM KAFKA BROKER 'kafka:9092' TOPIC 'mysql.simple.region'
+    CREATE SOURCE items
+    FROM KAFKA BROKER 'kafka:9092' TOPIC 'mysql.shop.items'
     FORMAT AVRO USING CONFLUENT SCHEMA REGISTRY 'http://schema-registry:8081'
     ENVELOPE DEBEZIUM;
 
-    CREATE SOURCE user
-    FROM KAFKA BROKER 'kafka:9092' TOPIC 'mysql.simple.user'
+    CREATE SOURCE users
+    FROM KAFKA BROKER 'kafka:9092' TOPIC 'mysql.shop.users'
     FORMAT AVRO USING CONFLUENT SCHEMA REGISTRY 'http://schema-registry:8081'
     ENVELOPE DEBEZIUM;
     ```
 
-1. Create a view for Materialize to maintain. In this case, we'll keep a sum of
-   all purchases made by users in each region:
+    Because these sources are pulling message schema data from the registry, materialize automatically knows the column types to use for each attribute.
+
+4. We'll also want to create a JSON-formatted source for the pageviews:
 
     ```sql
-    CREATE MATERIALIZED VIEW purchase_sum_by_region AS
-        SELECT sum(purchase.amount) AS region_sum, region.id AS region_id
-        FROM purchase
-        INNER JOIN user ON purchase.user_id = user.id
-        INNER JOIN region ON region.id = user.region_id
-        GROUP BY region.id;
+    CREATE SOURCE json_pageviews
+    FROM KAFKA BROKER 'kafka:9092' TOPIC 'pageviews'
+    FORMAT BYTES;
     ```
 
-1. Read the materialized view.
+    With JSON-formatted messages, we don't know the schema so the JSON is pulled in as raw bytes and we still need to CAST data into the proper columns and types.
+
+5. Next we will create our first Materialized View, summarizing pageviews by item:
 
     ```sql
-    SELECT * FROM purchase_sum_by_region;
+    CREATE MATERIALIZED VIEW item_pageviews AS
+        SELECT
+        (regexp_match((data->'url')::STRING, '/products/(\d+)')[1])::INT AS item_id,
+        COUNT(*) as pageviews
+        FROM (
+        SELECT CAST(data AS jsonb) AS data
+        FROM (
+            SELECT convert_from(data, 'utf8') AS data
+            FROM json_pageviews
+        )) GROUP BY 1;
     ```
 
-    Go ahead and do that a few times; you should see the `region_sum` continue
-    to increase for all `region_id`s.
+    As you can see here, we are doing a couple extra steps to get the pageview data into the format we need:
 
-    The first time you run the command, you may see a message stating "At least
-    one input has no complete timestamps yet." This indicates that Materialize
-    is still reading the initial batch of data from Kafka, and is usually
-    resolved by trying again in a few moments.
+    1. We are converting from raw bytes to utf8 encoded text:
 
-1. Close out of the Materialize CLI (<kbd>Ctrl</kbd> + <kbd>D</kbd>).
+       ```sql
+       SELECT convert_from(data, 'utf8') AS data
+            FROM json_pageviews
+        ```
 
-1. Watch the report change using the `watch-sql` container, which continually
+    2. We are using postgres JSON notation (`data->'url'`), type casts (`::STRING`) and regexp_match function to extract only the item_id from the raw pageview URL.
+
+       ```sql
+       (regexp_match((data->'url')::STRING, '/products/(\d+)')[1])::INT AS item_id,
+       ```
+
+6. Now if you select results from the view, you should see data populating:
+
+    ```sql
+    SELECT * FROM item_pageviews ORDER BY pageviews DESC LIMIT 10;
+    ```
+
+    If you re-run it a few times you should see the pageview counts changing as new data comes in and is materialized in realtime.
+
+7. Let's create some more materialized views:
+
+    Purchase Summary:
+
+    ```sql
+    CREATE MATERIALIZED VIEW purchase_summary AS 
+        SELECT
+            item_id,
+            SUM(purchase_price) as revenue,
+            COUNT(id) AS orders,
+            SUM(quantity) AS items_sold
+        FROM purchases GROUP BY 1;
+    ```
+
+    Item Summary: _(Using purchase summary and pageview summary internally)_
+
+    ```sql
+    CREATE MATERIALIZED VIEW item_summary AS
+        SELECT
+            items.name,
+            purchase_summary.items_sold,
+            purchase_summary.orders,
+            purchase_summary.revenue,
+            item_pageviews.pageviews,
+            CASE WHEN item_pageviews.pageviews IS NULL THEN 0.0 ELSE purchase_summary.orders / item_pageviews.pageviews::FLOAT END AS conversion_rate
+        FROM items
+        JOIN purchase_summary ON purchase_summary.item_id = items.id
+        JOIN item_pageviews ON item_pageviews.item_id = items.id;
+    ```
+
+    This last one shows some of the advanced JOIN capabilities of Materialize, we're joining our two previous views with items to create a complex roll-up summary of purchases, pageviews, and conversion rates.
+
+    If you select from `item_summary` you can see the results in real-time:
+
+    ```sql
+    SELECT * FROM item_summary ORDER BY conversion_rate DESC LIMIT 10;
+    ```
+
+8. Close out of the Materialize CLI (<kbd>Ctrl</kbd> + <kbd>D</kbd>).
+
+9. Watch the report change using the `watch-sql` container, which continually
    streams changes from Materialize to your terminal.
 
     ```shell
     ./mzcompose run cli watch-sql "SELECT * FROM purchase_sum_by_region"
     ```
 
-1. Once you're sufficiently wowed, close out of the `watch-sql` container
+11. Once you're sufficiently wowed, close out of the `watch-sql` container
    (<kbd>Ctrl</kbd> + <kbd>D</kbd>), and bring the entire demo down.
 
     ```shell
     ./mzcompose down
     ```
-
-### Troubleshooting
-
-If you encounter any issues, such as not being able to create sources in
-Materialize or `purchase_sum_by_region` being empty, go through the following
-steps.
-
-1. Launch MySQL instance.
-
-    ```shell
-    ./mzcompose run mysqlcli
-    ```
-
-1. Run the query that the view is based on directly within MySQL.
-
-    ```sql
-    USE simple;
-    SELECT  sum(purchase.amount) AS region_sum,
-            region.id AS region_id
-    FROM purchase
-    INNER JOIN user
-        ON purchase.user_id = user.id
-    INNER JOIN region
-        ON region.id = user.region_id
-    GROUP BY region.id;
-    ```
-
-If you see values here, there is likely an issue with Debezium or Kafka
-streaming the values out of MySQL; check the Kafka connector logs using
-`./mzcompose logs -f connector`.
-
-If you don't see values here, there is likely an issue with the load generator;
-check its logs using `./mzcompose logs loadgen`.
