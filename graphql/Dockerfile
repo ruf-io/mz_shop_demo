@@ -4,6 +4,8 @@ FROM node:alpine
 RUN npm install -g postgraphile
 RUN npm install -g postgraphile-plugin-connection-filter
 
+RUN   ls /usr/local/lib/node
+RUN   sed
 RUN   sed -i 's/to_json/to_jsonb/g' /usr/local/lib/node/postgraphile/*
 RUN   sed -i 's/json_agg/jsonb_agg/g' /usr/local/lib/node/postgraphile/*
 RUN   sed -i 's/json_build_object/jsonb_build_object/g' /usr/local/lib/node/postgraphile/*
