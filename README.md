@@ -216,62 +216,71 @@ available to Docker Engine.
 
 ## Business Intelligence: Metabase
 
-    1. In a browser, go to <localhost:3030> _(or <IP_ADDRESS:3030> if running on a VM)._
+1. In a browser, go to <localhost:3030> _(or <IP_ADDRESS:3030> if running on a VM)._
 
-    2. Click **Let's get started**.
+2. Click **Let's get started**.
 
-    3. Complete the first set of fields asking for your email address. This
-       information isn't crucial for anything but does have to be filled in.
+3. Complete the first set of fields asking for your email address. This
+    information isn't crucial for anything but does have to be filled in.
 
-    4. On the **Add your data** page, fill in the following information:
+4. On the **Add your data** page, fill in the following information:
 
-        Field             | Enter...
-        ----------------- | ----------------
-        Database          | **Materialize**
-        Name              | **tpcch**
-        Host              | **materialized**
-        Port              | **6875**
-        Database name     | **materialize**
-        Database username | **materialize**
-        Database password | Leave empty.
+    Field             | Enter...
+    ----------------- | ----------------
+    Database          | **Materialize**
+    Name              | **tpcch**
+    Host              | **materialized**
+    Port              | **6875**
+    Database name     | **materialize**
+    Database username | **materialize**
+    Database password | Leave empty.
 
-    5. Proceed past the screens until you reach your primary dashboard.
+5. Proceed past the screens until you reach your primary dashboard.
 
-    6. Click **Ask a question**.
+6. Click **Ask a question**.
 
-    7. Click **Native query**.
+7. Click **Native query**.
 
-    8. From **Select a database**, select **tpcch**.
+8. From **Select a database**, select **tpcch**.
 
-    9. In the query editor, enter:
+9. In the query editor, enter:
 
-        ```sql
-        SELECT * FROM item_summary ORDER BY conversion_rate DESC;
-        ```
-    10. You can save the output and add it to a dashboard, once you've drafted a dashboard you can manually set the refresh rate to 1 second by adding `#refresh=1` to the end of the URL, here is an example of a real-time dashboard of top-viewed items and top converting items:
-    ![](https://user-images.githubusercontent.com/11527560/111679085-5228a780-87f7-11eb-86c5-34bf7b6cdcfb.gif)
+    ```sql
+    SELECT * FROM item_summary ORDER BY conversion_rate DESC;
+    ```
+
+10. You can save the output and add it to a dashboard, once you've drafted a dashboard you can manually set the refresh rate to 1 second by adding `#refresh=1` to the end of the URL, here is an example of a real-time dashboard of top-viewed items and top converting items:
+![](https://user-images.githubusercontent.com/11527560/111679085-5228a780-87f7-11eb-86c5-34bf7b6cdcfb.gif)
 
 ## GraphQL API: Postgraphile
 
 Postgraphile is running as middleware that connects to materialize (as if it were a postgres database) and exposes a graphql API to port 5000.
 
-    1. In a browser, go to <localhost:5000/graphiql> _(or <IP_ADDRESS:5000/graphiql> if running on a VM)._
-    2. This exposes an interactive UI for composing and creating graphql queries, you can use the toggles on the sidebar to create your own query, or you can paste one in like: 
+1. In a browser, go to <localhost:5000/graphiql> _(or <IP_ADDRESS:5000/graphiql> if running on a VM)._
+2. This exposes an interactive UI for composing and creating graphql queries, you can use the toggles on the sidebar to create your own query, or you can paste one in like:
 
-    ```graphql
-    query MyQuery {
-    allItemMetadata(first: 10, orderBy: TREND_RANK_ASC) {
-        edges {
-        node {
-            id
-            remainingStock
-            trendRank
-        }
-        }
+```graphql
+query MyQuery {
+allItemMetadata(first: 10, orderBy: TREND_RANK_ASC) {
+    edges {
+    node {
+        id
+        remainingStock
+        trendRank
     }
     }
-    ```
+}
+}
+```
 
-    This query is fetching from our realtime materialized view called `item_metadata` and grabbing the top 10 items by trend_rank.
+This query is fetching from our realtime materialized view called `item_metadata` and grabbing the top 10 items by trend_rank.
 
-    ![postgraphile](https://user-images.githubusercontent.com/11527560/111680390-8c467900-87f8-11eb-940a-3c95fd7792d2.png)
+![postgraphile](https://user-images.githubusercontent.com/11527560/111680390-8c467900-87f8-11eb-940a-3c95fd7792d2.png)
+
+## Conclusion
+
+You now have materialize doing real-time materialized views on a changefeed from a database and pageview events from kafka. You have complex multi-layer views doing JOIN's and aggregations in order to distill the raw data into a form that's useful for downstream applications: metabase and graphQL.
+
+In metabase, you have the ability to create dashboards and reports using the real-time data. And you can use the graphQL API to query real-time data from your website or other client applications.
+
+You have a lot of infrastructure running in docker containers, don't forget to run `docker-compose down` to shut everything down!
