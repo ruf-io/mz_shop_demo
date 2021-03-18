@@ -55,8 +55,10 @@ available to Docker Engine.
 2. Launch the Materialize CLI.
 
     ```shell session
-    psql -U materialize -h localhost -p 6875 materialize
+    docker-compose run mzcli
     ```
+
+     _(This is just a shortcut to a docker container with postgres-client pre-installed, if you already have psql you could run `psql -U materialize -h localhost -p 6875 materialize`)_
 
 3. Now that you're in the Materialize CLI, define all of the tables in `mysql.shop` as Kafka sources:
 
@@ -88,6 +90,21 @@ available to Docker Engine.
     ```
 
     With JSON-formatted messages, we don't know the schema so the JSON is pulled in as raw bytes and we still need to CAST data into the proper columns and types. We'll show that in the step below.
+
+    Now if you run `SHOW SOURCES;` in the CLI, you should see the four sources we created:
+
+    ```
+    materialize=> SHOW SOURCES;
+        name      
+    ----------------
+    items
+    json_pageviews
+    purchases
+    users
+    (4 rows)
+
+    materialize=> 
+    ```
 
 5. Next we will create our first Materialized View, summarizing pageviews by item:
 
@@ -165,22 +182,19 @@ available to Docker Engine.
     SELECT * FROM item_summary ORDER BY conversion_rate DESC LIMIT 10;
     ```
 
-    **Remaining Stock:**
+    **Remaining Stock:** This view joins items and (all purchases created _after_ an item's inventory was updated) and creates a column that subtracts quantity_sold from inventory to get a live in-stock count.
 
     ```sql
     CREATE MATERIALIZED VIEW remaining_stock AS
         SELECT
           items.id as item_id,
-          MAX(items.inventory) - SUM(purchases.quantity) AS remaining_stock,
-          1 as trend_rank
+          MAX(items.inventory) - SUM(purchases.quantity) AS remaining_stock
         FROM items
         JOIN purchases ON purchases.item_id = items.id AND purchases.created_at > items.inventory_updated_at
         GROUP BY items.id;
     ```
 
-    **Trending Items:**
-
-    Here we are doing a bit of a hack because Materialize doesn't yet support window functions like `RANK`. So instead we are doing a self join on `purchase_summary` and counting up the items with _more purchases than the current item_ to get a basic "trending" rank datapoint.
+    **Trending Items:** Here we are doing a bit of a hack because Materialize doesn't yet support window functions like `RANK`. So instead we are doing a self join on `purchase_summary` and counting up the items with _more purchases than the current item_ to get a basic "trending" rank datapoint.
 
     ```sql
     CREATE MATERIALIZED VIEW trending_items AS
@@ -200,6 +214,21 @@ available to Docker Engine.
             rs.item_id as id, rs.remaining_stock, ti.trend_rank
         FROM remaining_stock rs
         JOIN trending_items ti ON ti.item_id = rs.item_id;
+    ```
+
+    Now if you run `SHOW VIEWS;` you should see all the views we just created:
+
+    ```
+    materialize=> SHOW VIEWS;
+       name       
+    ------------------
+    item_metadata
+    item_pageviews
+    item_summary
+    purchase_summary
+    remaining_stock
+    trending_items
+    (6 rows)
     ```
 
 8. Now you've materialized some views that we can use in a business intelligence tool, metabase, and in a graphQL API (postgraphile.) Close out of the Materialize CLI (<kbd>Ctrl</kbd> + <kbd>D</kbd>).
