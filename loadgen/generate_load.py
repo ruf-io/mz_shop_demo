@@ -5,8 +5,9 @@ from kafka import KafkaProducer
 # CONFIG
 userSeedCount      = 10000
 itemSeedCount      = 1000
-purchaseGenCount   = 1000000
-purchaseGenEveryMS = 50
+purchaseGenCount   = 100000
+purchaseGenEveryMS = 100
+pageviewMultiplier = 75
 itemInventoryMin   = 1000
 itemInventoryMax   = 5000
 itemPriceMin       = 5
@@ -116,7 +117,7 @@ try:
                 producer.send(kafkaTopic, key=b'test', value=generatePageview(purchase_user, purchase_item[0]))
 
                 # Write random pageviews
-                for i in range(random.randint(50,80)):
+                for i in range(pageviewMultiplier):
                     producer.send(kafkaTopic, key=b'test', value=generatePageview(random.randint(0,userSeedCount), random.randint(0,itemSeedCount)))
 
                 # Write purchase row
