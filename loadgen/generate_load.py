@@ -16,7 +16,7 @@ kafkaTopic         = 'pageviews'
 channels           = ['organic search', 'paid search', 'referral', 'social', 'display']
 
 # INSERT TEMPLATES
-item_insert     = "INSERT INTO shop.items (name, price, daily_inventory) VALUES ( %s, %s, %s )"
+item_insert     = "INSERT INTO shop.items (name, price, inventory) VALUES ( %s, %s, %s )"
 user_insert     = "INSERT INTO shop.users (email, is_vip) VALUES ( %s, %s )"
 purchase_insert = "INSERT INTO shop.purchases (user_id, item_id, quantity, purchase_price) VALUES ( %s, %s, %s, %s )"
 

@@ -4,5 +4,7 @@ FROM node:alpine
 RUN npm install -g postgraphile
 RUN npm install -g postgraphile-plugin-connection-filter
 
+COPY postgraphile.schema /postgraphile.schema
+
 EXPOSE 5000
 ENTRYPOINT ["postgraphile", "-n", "0.0.0.0"]

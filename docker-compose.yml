@@ -53,10 +53,11 @@ services:
       - 3030:3000
   graphql:
     build: graphql
-    command: ["--connection", "postgresql://materialize@materialized:6875/materialize", "--port", "5433", "--schema", "public", "--append-plugins", "postgraphile-plugin-connection-filter"]
+    command: ["--connection", "postgresql://materialize@materialized:6875/materialize", "--schema", "public", "--read-cache", "/postgraphile.schema", "--enhance-graphiql", "--allow-explain", "--skip-plugins", "graphile-build:NodePlugin", "--append-plugins", "postgraphile-plugin-connection-filter"]
+
     depends_on: [materialized]
     ports:
-      - 5433:5433
+      - 5000:5000
   connector:
     build: connector
   loadgen:
