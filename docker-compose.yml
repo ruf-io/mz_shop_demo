@@ -52,6 +52,7 @@ services:
     ports:
       - 3030:3000
   graphql:
+    build: graphql
     command: ["--connection", "DATABASE_URL=postgres://materialize:@materialized:6875/materialize", "--port", "5433", "--schema", "public", "--append-plugins", "postgraphile-plugin-connection-filter"]
     depends_on: [materialized]
     ports:
