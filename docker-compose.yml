@@ -60,6 +60,8 @@ services:
       - 5000:5000
   connector:
     build: connector
+  mzcli:
+    image: materialize/cli
   loadgen:
     build: loadgen
     depends_on: [mysql]

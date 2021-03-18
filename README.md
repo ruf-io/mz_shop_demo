@@ -47,20 +47,10 @@ available to Docker Engine.
 1. Bring up the Docker Compose containers in the background:
 
     ```shell session
-    $ docker-compose up -d
-    Creating demo_zookeeper_1    ... done
-    Creating demo_connector_1       ... done
-    Creating demo_materialized_1    ... done
-    Creating demo_mysql_1           ... done
-    Creating demo_kafka_1        ... done
-    Creating demo_schema-registry_1 ... done
-    Creating demo_connect_1         ... done
-    Creating demo_loadgen_1         ... done
-    Creating demo_graphql_1         ... done
-    Creating demo_metabase_1        ... done
+    docker-compose up -d
     ```
 
-    If all goes well, you'll have everything running in their own containers, with Debezium configured to ship changes from MySQL into Kafka.
+    **This may take several minutes to complete the first time you run it.** If all goes well, you'll have everything running in their own containers, with Debezium configured to ship changes from MySQL into Kafka.
 
 2. Launch the Materialize CLI.
 
@@ -228,7 +218,7 @@ available to Docker Engine.
     Field             | Enter...
     ----------------- | ----------------
     Database          | **Materialize**
-    Name              | **tpcch**
+    Name              | **shop**
     Host              | **materialized**
     Port              | **6875**
     Database name     | **materialize**
@@ -241,7 +231,7 @@ available to Docker Engine.
 
 7. Click **Native query**.
 
-8. From **Select a database**, select **tpcch**.
+8. From **Select a database**, select **shop**.
 
 9. In the query editor, enter:
 
