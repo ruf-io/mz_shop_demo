@@ -17,6 +17,9 @@ To generate the data we'll simulate **users**, **items**, **purchases** and **pa
 
 To simplify deploying all of this infrastructure, the demo is enclosed in a series of Docker images glued together via Docker Compose. As a secondary benefit, you can run the demo via Linux, an EC2 VM instance, or a Mac laptop.
 
+The [docker-compose file](docker-compose.yml) spins up 9 containers with the following names, connections and roles:
+![Shop demo infra](https://user-images.githubusercontent.com/11527560/111649810-18e23e80-87db-11eb-96c0-6518ef7b87ba.png)
+
 ## What to Expect
 
 Our load generator (`loadgen`) is a [python script](loadgen/generate_load.py) that does two things:
@@ -56,9 +59,7 @@ available to Docker Engine.
     Creating demo_schema-registry_1 ... done
     ```
 
-    If all goes well, you'll have MySQL, ZooKeeper, Kafka, Kafka Connect,
-    Materialize, and a load generator running, each in their own container, with
-    Debezium configured to ship changes from MySQL into Kafka.
+    If all goes well, you'll have everything running in their own containers, with Debezium configured to ship changes from MySQL into Kafka.
 
 2. Launch the Materialize CLI.
 
@@ -66,9 +67,7 @@ available to Docker Engine.
     psql -U materialize -h localhost -p 6875 materialize
     ```
 
-3. Now that you're in the Materialize CLI (denoted by the terminal prefix
-   `mz>`), define all of the tables in `mysql.shop` as Kafka sources in
-   Materialize.
+3. Now that you're in the Materialize CLI, define all of the tables in `mysql.shop` as Kafka sources:
 
     ```sql
     CREATE SOURCE purchases
@@ -97,7 +96,7 @@ available to Docker Engine.
     FORMAT BYTES;
     ```
 
-    With JSON-formatted messages, we don't know the schema so the JSON is pulled in as raw bytes and we still need to CAST data into the proper columns and types.
+    With JSON-formatted messages, we don't know the schema so the JSON is pulled in as raw bytes and we still need to CAST data into the proper columns and types. We'll show that in the step below.
 
 5. Next we will create our first Materialized View, summarizing pageviews by item:
 
@@ -135,11 +134,11 @@ available to Docker Engine.
     SELECT * FROM item_pageviews ORDER BY pageviews DESC LIMIT 10;
     ```
 
-    If you re-run it a few times you should see the pageview counts changing as new data comes in and is materialized in realtime.
+    If you re-run it a few times you should see the pageview counts changing as new data comes in and gets materialized in real time.
 
 7. Let's create some more materialized views:
 
-    Purchase Summary:
+    **Purchase Summary:**
 
     ```sql
     CREATE MATERIALIZED VIEW purchase_summary AS 
@@ -151,7 +150,7 @@ available to Docker Engine.
         FROM purchases GROUP BY 1;
     ```
 
-    Item Summary: _(Using purchase summary and pageview summary internally)_
+    **Item Summary:** _(Using purchase summary and pageview summary internally)_
 
     ```sql
     CREATE MATERIALIZED VIEW item_summary AS
@@ -167,7 +166,7 @@ available to Docker Engine.
         JOIN item_pageviews ON item_pageviews.item_id = items.id;
     ```
 
-    This last one shows some of the advanced JOIN capabilities of Materialize, we're joining our two previous views with items to create a complex roll-up summary of purchases, pageviews, and conversion rates.
+    This last view shows some of the JOIN capabilities of Materialize, we're joining our two previous views with items to create a summary of purchases, pageviews, and conversion rates.
 
     If you select from `item_summary` you can see the results in real-time:
 
@@ -177,14 +176,9 @@ available to Docker Engine.
 
 8. Close out of the Materialize CLI (<kbd>Ctrl</kbd> + <kbd>D</kbd>).
 
-9. Watch the report change using the `watch-sql` container, which continually
-   streams changes from Materialize to your terminal.
+9. Now you can
 
-    ```shell
-    ./mzcompose run cli watch-sql "SELECT * FROM purchase_sum_by_region"
-    ```
-
-11. Once you're sufficiently wowed, close out of the `watch-sql` container
+10. Once you're sufficiently wowed, close out of the `watch-sql` container
    (<kbd>Ctrl</kbd> + <kbd>D</kbd>), and bring the entire demo down.
 
     ```shell

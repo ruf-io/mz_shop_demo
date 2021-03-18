@@ -46,13 +46,11 @@ services:
      - SCHEMA_REGISTRY_HOST_NAME=schema-registry
      - SCHEMA_REGISTRY_LISTENERS=http://schema-registry:8081,http://localhost:8081
     depends_on: [zookeeper, kafka]
-  kafdrop:
-    image: obsidiandynamics/kafdrop
-    environment:
-      KAFKA_BROKERCONNECT: "kafka:9092"
-    depends_on: [zookeeper, kafka]
+  metabase:
+    image: materialize/metabase:v0.0.5
+    depends_on: [materialized]
     ports:
-      - 9000:9000
+      - 3030:3000
   connector:
     build: connector
   loadgen:
