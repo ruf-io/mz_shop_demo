@@ -1,9 +1,9 @@
 version: '3.7'
 services:
   materialized:
-    image: materialize/materialized:mzbuild-6GESXNRZUHFRSV3NU5NFYLKPUJWK62JE
+    image: materialize/materialized
     init: true
-    command: -w8 --disable-telemetry --experimental
+    command: -w8 --disable-telemetry
     ports:
       - 6875:6875
   mysql:
