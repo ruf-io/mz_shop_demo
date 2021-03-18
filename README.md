@@ -48,15 +48,16 @@ available to Docker Engine.
 
     ```shell session
     $ docker-compose up -d
-    Creating network "demo_default" with the default driver
-    Creating demo_chbench_1      ... done
-    Creating demo_mysql_1        ... done
-    Creating demo_materialized_1 ... done
-    Creating demo_connector_1    ... done
     Creating demo_zookeeper_1    ... done
+    Creating demo_connector_1       ... done
+    Creating demo_materialized_1    ... done
+    Creating demo_mysql_1           ... done
     Creating demo_kafka_1        ... done
-    Creating demo_connect_1         ... done
     Creating demo_schema-registry_1 ... done
+    Creating demo_connect_1         ... done
+    Creating demo_loadgen_1         ... done
+    Creating demo_graphql_1         ... done
+    Creating demo_metabase_1        ... done
     ```
 
     If all goes well, you'll have everything running in their own containers, with Debezium configured to ship changes from MySQL into Kafka.
@@ -166,7 +167,7 @@ available to Docker Engine.
         JOIN item_pageviews ON item_pageviews.item_id = items.id;
     ```
 
-    This last view shows some of the JOIN capabilities of Materialize, we're joining our two previous views with items to create a summary of purchases, pageviews, and conversion rates.
+    This view shows some of the JOIN capabilities of Materialize, we're joining our two previous views with items to create a summary of purchases, pageviews, and conversion rates.
 
     If you select from `item_summary` you can see the results in real-time:
 
@@ -174,9 +175,81 @@ available to Docker Engine.
     SELECT * FROM item_summary ORDER BY conversion_rate DESC LIMIT 10;
     ```
 
-8. Close out of the Materialize CLI (<kbd>Ctrl</kbd> + <kbd>D</kbd>).
+    **Remaining Stock:**
 
-9. Now you can
+    ```sql
+    CREATE MATERIALIZED VIEW remaining_stock AS
+        SELECT
+          items.id as item_id,
+          MAX(items.inventory) - SUM(purchases.quantity) AS remaining_stock,
+          1 as trend_rank
+        FROM items
+        JOIN purchases ON purchases.item_id = items.id AND purchases.created_at > items.inventory_updated_at
+        GROUP BY items.id;
+    ```
+
+    **Trending Items:**
+
+    Here we are doing a bit of a hack because Materialize doesn't yet support window functions like `RANK`. So instead we are doing a self join on `purchase_summary` and counting up the items with _more purchases than the current item_ to get a basic "trending" rank datapoint.
+
+    ```sql
+    CREATE MATERIALIZED VIEW trending_items AS
+        SELECT
+            p1.item_id,
+            SUM(CASE WHEN p2.items_sold > p1.items_sold THEN 1 ELSE 0 END) as trend_rank
+        FROM purchase_summary p1
+        FULL JOIN purchase_summary p2 ON 1 = 1
+        GROUP BY 1;
+    ```
+
+    Lastly, let's bring the trending items and remaining stock views together to expose to our graphql API:
+
+    ```sql
+    CREATE MATERIALIZED VIEW item_metadata AS
+        SELECT
+            rs.item_id as id, rs.remaining_stock, ti.trend_rank
+        FROM remaining_stock rs
+        JOIN trending_items ti ON ti.item_id = rs.item_id;
+    ```
+
+8. Now you've materialized some views that we can use in a business intelligence tool, metabase, and in a graphQL API (postgraphile.) Close out of the Materialize CLI (<kbd>Ctrl</kbd> + <kbd>D</kbd>).
+
+9. **Run Metabase**
+
+    1. In a browser, go to <localhost:3030>.
+
+    2. Click **Let's get started**.
+
+    3. Complete the first set of fields asking for your email address. This
+       information isn't crucial for anything but does have to be filled in.
+
+    4. On the **Add your data** page, fill in the following information:
+
+        Field             | Enter...
+        ----------------- | ----------------
+        Database          | **Materialize**
+        Name              | **tpcch**
+        Host              | **materialized**
+        Port              | **6875**
+        Database name     | **materialize**
+        Database username | **materialize**
+        Database password | Leave empty.
+
+    5. Proceed past the screens until you reach your primary dashboard.
+
+## Create dashboards
+
+    1. Click **Ask a question**.
+
+    2. Click **Native query**.
+
+    3. From **Select a database**, select **tpcch**.
+
+    4. In the query editor, enter:
+
+        ```sql
+        SELECT * FROM query01;
+        ```
 
 10. Once you're sufficiently wowed, close out of the `watch-sql` container
    (<kbd>Ctrl</kbd> + <kbd>D</kbd>), and bring the entire demo down.
